@@ -13,38 +13,7 @@ Yandex Forms support dropped. Google Forms is the new target. The existing YAML-
 
 ## 2. Google Cloud Credentials Setup
 
-> One-time manual steps before using the CLI.
-
-### 2.1 Create a GCP project
-
-1. Go to [https://console.cloud.google.com/](https://console.cloud.google.com/)
-2. Click **Select a project → New Project**
-3. Name it (e.g. `yaforms-cli`), click **Create**
-
-### 2.2 Enable the Google Forms API
-
-1. In the project, go to **APIs & Services → Library**
-2. Search for **Google Forms API**, click it, click **Enable**
-
-### 2.3 Configure OAuth consent screen
-
-1. Go to **APIs & Services → OAuth consent screen**
-2. Choose **External**, click **Create**
-3. Fill in **App name** (e.g. `YaForms CLI`) and **User support email**
-4. Skip scopes for now, click **Save and Continue** through all steps
-5. Under **Test users**, add your own Google account email, click **Save**
-
-### 2.4 Create OAuth 2.0 credentials
-
-1. Go to **APIs & Services → Credentials**
-2. Click **Create Credentials → OAuth client ID**
-3. Application type: **Desktop app**
-4. Name it (e.g. `yaforms-cli`), click **Create**
-5. Click **Download JSON** — save as `credentials.json`
-
-### 2.5 First run
-
-On first `push`, the CLI opens a browser tab asking you to sign in and grant access. After consent, a token is cached at `~/.config/yaforms/token.json` (created automatically). Subsequent runs are silent.
+See [docs/google-credentials-setup.md](../google-credentials-setup.md).
 
 ---
 
