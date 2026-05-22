@@ -6,18 +6,13 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace YaForms.Commands;
 
-/// <summary>
-/// Recreates a Yandex Form from a YAML spec file.
-/// Creates the form, adds all questions, and places them on the correct pages in order.
-/// </summary>
 public static class PushCommand
 {
-    public static async Task ExecuteAsync(string inputPath, string token, string orgId, bool publish)
+    public static async Task ExecuteAsync(string inputPath, string credentialsPath, CancellationToken ct = default)
     {
         Console.WriteLine($"Reading spec from {inputPath}...");
 
-        // 1. Deserialize YAML
-        var yaml = await File.ReadAllTextAsync(inputPath);
+        var yaml = await File.ReadAllTextAsync(inputPath, ct);
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .Build();
@@ -35,74 +30,20 @@ public static class PushCommand
         Console.WriteLine($"  Questions: {totalQuestions}");
         Console.WriteLine();
 
-        using var client = new YaFormsClient(token, orgId);
+        Console.WriteLine("Authenticating with Google...");
+        using var client = await GoogleFormsClient.CreateAsync(credentialsPath, ct);
 
-        // 2. Create form
-        Console.Write("  Creating form... ");
-        var createResp = await client.CreateFormAsync(new CreateSurveyRequest { Name = spec.Title });
-        var surveyId = createResp.Id;
-        Console.WriteLine($"id={surveyId}");
+        Console.Write("Creating form... ");
+        var formId = await client.CreateFormAsync(spec.Title, ct);
+        Console.WriteLine($"id={formId}");
 
-        // 3. Create questions and place them on pages
-        string? previousSlug = null;
-
-        for (var pageIdx = 0; pageIdx < spec.Pages.Count; pageIdx++)
-        {
-            var page = spec.Pages[pageIdx];
-            Console.WriteLine($"  Page {pageIdx + 1}: {page.Title ?? "(untitled)"}");
-            var isFirstOnPage = true;
-
-            foreach (var q in page.Questions)
-            {
-                Console.Write($"    [{q.Type}] {q.Title}... ");
-
-                // Create the question
-                var createReq = FormMapper.ToCreateRequest(q);
-                var qResp = await client.CreateQuestionAsync(surveyId, createReq);
-                var createdSlug = qResp.Slug;
-
-                // Move it to the correct page and position
-                var moveReq = new MoveQuestionRequest();
-
-                if (pageIdx == 0)
-                {
-                    // First page: questions go on page 0 (default page)
-                    moveReq.Page = 0;
-                }
-                else if (isFirstOnPage)
-                {
-                    // First question on a new page: create a new page
-                    moveReq.CreatePage = true;
-                }
-                else
-                {
-                    // Subsequent questions: place after previous on same page
-                    moveReq.Page = pageIdx;
-                }
-
-                if (previousSlug is not null && !isFirstOnPage)
-                {
-                    moveReq.After = previousSlug;
-                }
-
-                await client.MoveQuestionAsync(surveyId, createdSlug, moveReq);
-                Console.WriteLine($"slug={createdSlug}");
-
-                previousSlug = createdSlug;
-                isFirstOnPage = false;
-            }
-        }
-
-        // 4. Optionally publish
-        if (publish)
-        {
-            Console.Write("  Publishing... ");
-            await client.PublishFormAsync(surveyId);
-            Console.WriteLine("done!");
-        }
+        Console.WriteLine("Adding items (batch)...");
+        var requests = FormMapper.BuildRequests(spec);
+        await client.BatchUpdateAsync(formId, requests, ct);
+        Console.WriteLine($"  {requests.Count} items added.");
 
         Console.WriteLine();
-        Console.WriteLine($"  New form ID: {surveyId}");
-        Console.WriteLine($"  Admin URL:   https://forms.yandex.ru/admin/{surveyId}/");
+        Console.WriteLine($"  Form ID:  {formId}");
+        Console.WriteLine($"  Edit URL: https://docs.google.com/forms/d/{formId}/edit");
     }
 }
