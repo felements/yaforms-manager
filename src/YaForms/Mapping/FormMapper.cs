@@ -23,7 +23,7 @@ public static class FormMapper
                     {
                         Item = new Item
                         {
-                            Title = page.Title,
+                            Title = N(page.Title),
                             PageBreakItem = new PageBreakItem()
                         },
                         Location = new Location { Index = index++ }
@@ -54,18 +54,21 @@ public static class FormMapper
         return requests;
     }
 
+    private static string N(string? s) =>
+        (s ?? string.Empty).ReplaceLineEndings(" ").Trim();
+
     public static Item? ToGoogleItem(QuestionSpec q)
     {
         return q.Type switch
         {
             "info" => new Item
             {
-                Title = q.Title,
+                Title = N(q.Title),
                 TextItem = new TextItem()
             },
             "short_answer" or "integer" => new Item
             {
-                Title = q.Title,
+                Title = N(q.Title),
                 QuestionItem = new QuestionItem
                 {
                     Question = new Question
@@ -77,7 +80,7 @@ public static class FormMapper
             },
             "paragraph" => new Item
             {
-                Title = q.Title,
+                Title = N(q.Title),
                 QuestionItem = new QuestionItem
                 {
                     Question = new Question
@@ -90,7 +93,7 @@ public static class FormMapper
             "choice" => BuildChoiceItem(q),
             "date" => new Item
             {
-                Title = q.Title,
+                Title = N(q.Title),
                 QuestionItem = new QuestionItem
                 {
                     Question = new Question
@@ -102,7 +105,7 @@ public static class FormMapper
             },
             "file" => new Item
             {
-                Title = q.Title,
+                Title = N(q.Title),
                 QuestionItem = new QuestionItem
                 {
                     Question = new Question
@@ -135,12 +138,12 @@ public static class FormMapper
             }
 
             if (q.Params.TryGetValue("options", out var optsObj) && optsObj is List<object> optList)
-                options = optList.Select(o => new Option { Value = o.ToString() }).ToList();
+                options = optList.Select(o => new Option { Value = N(o.ToString()) }).ToList();
         }
 
         return new Item
         {
-            Title = q.Title,
+            Title = N(q.Title),
             QuestionItem = new QuestionItem
             {
                 Question = new Question
